@@ -1,0 +1,21 @@
+[package]
+name = "retransmitted"
+version = "0.0.0"
+authors = []
+description = "Simple CORS proxy."
+edition = "2018"
+
+[dependencies]
+env_logger = { version = "0.8", default-features = false, features = ["humantime"] }
+hyper = { version = "0.14", features = ["client", "server", "http1", "http2"] }
+hyper-rustls = "0.22"
+log = "0.4"
+ring = "0.16"
+structopt = { version = "0.3", default-features = false }
+thiserror = "1.0"
+tokio = { version = "1.0" , features = ["macros", "rt"] }
+
+[profile.release]
+panic = "abort"
+lto = true
+codegen-units = 1
