@@ -2,6 +2,8 @@ use hyper::client::HttpConnector;
 use hyper::http::HeaderValue;
 use hyper::{header, Body, Client, Method, Request, Response, StatusCode, Uri};
 use hyper_rustls::HttpsConnector;
+use std::convert::Infallible;
+use std::mem;
 use std::str::FromStr;
 
 pub struct State {
@@ -13,7 +15,7 @@ pub struct State {
 pub async fn respond_to_request(
     mut req: Request<Body>,
     state: &State,
-) -> Result<Response<Body>, hyper::Error> {
+) -> Result<Response<Body>, Infallible> {
     const X_RETRANSMITTED_KEY: &str = "x-retransmitted-key";
     const ANY: HeaderValue = HeaderValue::from_static("*");
     const ALLOWED_HEADERS: HeaderValue = HeaderValue::from_static(X_RETRANSMITTED_KEY);
@@ -79,17 +81,20 @@ pub async fn respond_to_request(
         }
     };
 
-    log::info!("{} {} -> {}", req.method(), req.uri(), uri);
-    *req.uri_mut() = uri;
-    let mut resp = state.client.request(req).await;
-    match resp.as_mut() {
-        Ok(resp) => {
-            resp.headers_mut()
-                .append(header::ACCESS_CONTROL_ALLOW_ORIGIN, ANY);
-        }
+    let orig_method = req.method().clone();
+    let orig_uri = mem::replace(req.uri_mut(), uri);
+    let mut resp = match state.client.request(req).await {
+        Ok(r) => r,
         Err(e) => {
-            log::error!("-> [proxy error] {}", e);
+            log::error!("{} {} -> [proxy error] {}", orig_method, orig_uri, e);
+            let mut resp = Response::new(Body::empty());
+            *resp.status_mut() = StatusCode::BAD_GATEWAY;
+            return Ok(resp);
         }
-    }
-    resp
+    };
+
+    log::info!("{} {} -> [success]", orig_method, orig_uri);
+    resp.headers_mut()
+        .append(header::ACCESS_CONTROL_ALLOW_ORIGIN, ANY);
+    Ok(resp)
 }
