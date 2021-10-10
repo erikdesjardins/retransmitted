@@ -9,6 +9,7 @@ pub struct State {
     pub secret_key: String,
 }
 
+#[allow(clippy::declare_interior_mutable_const)]
 pub async fn respond_to_request(
     mut req: Request<Body>,
     state: &State,
@@ -52,7 +53,7 @@ pub async fn respond_to_request(
     let path_and_query = match req
         .uri()
         .path_and_query()
-        .and_then(|p| p.as_str().strip_prefix("/"))
+        .and_then(|p| p.as_str().strip_prefix('/'))
     {
         Some(p_q) => p_q,
         None => {
