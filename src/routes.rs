@@ -35,7 +35,7 @@ pub async fn respond_to_request(
         None => {
             log::info!("{} {} -> [missing key]", req.method(), req.uri());
             let mut resp = Response::new(Body::empty());
-            *resp.status_mut() = StatusCode::BAD_REQUEST;
+            *resp.status_mut() = StatusCode::UNAUTHORIZED;
             return Ok(resp);
         }
     };
@@ -47,7 +47,7 @@ pub async fn respond_to_request(
         Err(ring::error::Unspecified) => {
             log::warn!("{} {} -> [invalid key]", req.method(), req.uri());
             let mut resp = Response::new(Body::empty());
-            *resp.status_mut() = StatusCode::BAD_REQUEST;
+            *resp.status_mut() = StatusCode::UNAUTHORIZED;
             return Ok(resp);
         }
     }
