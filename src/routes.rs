@@ -68,13 +68,7 @@ pub async fn respond_to_request(
     let uri = match Uri::from_str(path_and_query) {
         Ok(a) => a,
         Err(e) => {
-            log::warn!(
-                "{} {} -> [invalid url] {:?} {}",
-                req.method(),
-                req.uri(),
-                path_and_query,
-                e
-            );
+            log::warn!("{} {} -> [invalid url] {}", req.method(), req.uri(), e);
             let mut resp = Response::new(Body::empty());
             *resp.status_mut() = StatusCode::BAD_REQUEST;
             return Ok(resp);
