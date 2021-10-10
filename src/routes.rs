@@ -31,7 +31,7 @@ pub async fn respond_to_request(
     let provided_key = match req.headers_mut().remove(X_RETRANSMITTED_KEY) {
         Some(k) => k,
         None => {
-            log::warn!("{} {} -> [missing key]", req.method(), req.uri());
+            log::info!("{} {} -> [missing key]", req.method(), req.uri());
             let mut resp = Response::new(Body::empty());
             *resp.status_mut() = StatusCode::BAD_REQUEST;
             return Ok(resp);
