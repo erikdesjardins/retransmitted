@@ -1,5 +1,6 @@
 mod err;
 mod opt;
+mod path;
 mod routes;
 mod server;
 

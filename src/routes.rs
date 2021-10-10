@@ -1,10 +1,10 @@
+use crate::path::extract_uri_from_path;
 use hyper::client::HttpConnector;
 use hyper::http::HeaderValue;
-use hyper::{header, Body, Client, Method, Request, Response, StatusCode, Uri};
+use hyper::{header, Body, Client, Method, Request, Response, StatusCode};
 use hyper_rustls::HttpsConnector;
 use std::convert::Infallible;
 use std::mem;
-use std::str::FromStr;
 
 pub struct State {
     pub client: Client<HttpsConnector<HttpConnector>>,
@@ -35,7 +35,7 @@ pub async fn respond_to_request(
         None => {
             log::info!("{} {} -> [missing key]", req.method(), req.uri());
             let mut resp = Response::new(Body::empty());
-            *resp.status_mut() = StatusCode::BAD_REQUEST;
+            *resp.status_mut() = StatusCode::UNAUTHORIZED;
             return Ok(resp);
         }
     };
@@ -47,32 +47,31 @@ pub async fn respond_to_request(
         Err(ring::error::Unspecified) => {
             log::warn!("{} {} -> [invalid key]", req.method(), req.uri());
             let mut resp = Response::new(Body::empty());
-            *resp.status_mut() = StatusCode::BAD_REQUEST;
+            *resp.status_mut() = StatusCode::UNAUTHORIZED;
             return Ok(resp);
         }
     }
 
-    let path_and_query = match req
-        .uri()
-        .path_and_query()
-        .and_then(|p| p.as_str().strip_prefix('/'))
-    {
-        Some(p_q) => p_q,
+    let uri = match extract_uri_from_path(req.uri()) {
         None => {
             log::warn!("{} {} -> [missing url]", req.method(), req.uri());
             let mut resp = Response::new(Body::empty());
             *resp.status_mut() = StatusCode::BAD_REQUEST;
             return Ok(resp);
         }
-    };
-    let uri = match Uri::from_str(path_and_query) {
-        Ok(a) => a,
-        Err(e) => {
-            log::warn!("{} {} -> [invalid url] {}", req.method(), req.uri(), e);
+        Some(Err((e, unparsed))) => {
+            log::warn!(
+                "{} {} -> [invalid url] {:?} {}",
+                req.method(),
+                req.uri(),
+                unparsed,
+                e
+            );
             let mut resp = Response::new(Body::empty());
             *resp.status_mut() = StatusCode::BAD_REQUEST;
             return Ok(resp);
         }
+        Some(Ok(u)) => u,
     };
 
     let orig_method = req.method().clone();
