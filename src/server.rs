@@ -2,13 +2,20 @@ use crate::err::Error;
 use crate::routes::{respond_to_request, State};
 use hyper::service::{make_service_fn, service_fn};
 use hyper::{Client, Server};
-use hyper_rustls::HttpsConnector;
+use hyper_rustls::HttpsConnectorBuilder;
 use std::convert::Infallible;
 use std::net::SocketAddr;
 use std::sync::Arc;
 
 pub async fn run(addr: SocketAddr, secret_key: String) -> Result<(), Error> {
-    let client = Client::builder().build(HttpsConnector::with_native_roots());
+    let client = Client::builder().build(
+        HttpsConnectorBuilder::new()
+            .with_native_roots()
+            .https_or_http()
+            .enable_http1()
+            .enable_http2()
+            .build(),
+    );
 
     let state = Arc::new(State { client, secret_key });
     let make_svc = make_service_fn(move |_| {
